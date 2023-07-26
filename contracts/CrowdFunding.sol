@@ -20,7 +20,8 @@ contract CrowdFunding is Ownable{
         uint currentFunds; ///@dev probably not needed
         bool isActive;
         uint id;
-    }
+        address payable recipient;
+    } /// @dev need to be reorganised due to memory efficient use
 
     mapping(uint => Funding) public crowdF;
 
@@ -36,17 +37,27 @@ contract CrowdFunding is Ownable{
             goal: _goal,
             currentFunds: 0,
             isActive: true,
-            id: fundId
+            id: fundId,
+            recipient:payable(msg.sender)
         });
 
         fundings.push(newFunding);
+
+        crowdF[fundId] = newFunding;
 
         currentFundId.increment();
     }
 
     function fund (uint _id) public payable {
-        require(crowdF[_id].isActive, "The funding target is not active.");
-        // Rest of the function's logic goes here  
+        Funding storage funding = crowdF[_id];
+        require(funding.goal < funding.goal); /// @dev might need to change this require statement as it looks useless
+        require(funding.isActive, "The funding target is not active.");
+        funding.recipient.transfer(msg.value);
+        funding.currentFunds += msg.value;
+    }
+
+    function check_goal (uint _id) public view returns (uint) {
+        return crowdF[_id].goal;
     }
 
 }
