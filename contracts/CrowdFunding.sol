@@ -11,6 +11,8 @@ contract CrowdFundingunding is Ownable{
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
+    // TODO: Using counters as Id's is a bad pracrtice. UUID is recommended
+
     Counters.Counter private currentFundId;
     Counters.Counter private currentVoteId;
 
@@ -42,19 +44,20 @@ contract CrowdFundingunding is Ownable{
         uint id;
         string title;
         string description;
-        bool isActive;
+        uint requestedFunds;
         uint startTime;
         uint votedPositive;
         uint votedNegative;
+        bool isActive;
     } /// @dev need to be reorganised due to memory efficient use
 
     mapping(uint => Voting[]) public fundingVotes;
 
     mapping(uint => Funding) public crowdFunding;
 
-    mapping(uint => mapping(address => uint)) contributions;
+    mapping(uint => mapping(address => uint)) public contributions;
 
-    mapping(uint => mapping(address => bool)) hasVoted;
+    mapping(uint => mapping(address => bool)) public hasVoted;
 
     function createFuncding(string memory _name, string memory _description, uint _goal) public {
 
@@ -75,7 +78,7 @@ contract CrowdFundingunding is Ownable{
         currentFundId.increment();
     }
 
-    function createVoting(string memory _title, string memory _description, uint _id) public payable{
+    function createVoting(string memory _title, string memory _description, uint _id, uint _requestedFunds) public payable{
 
         require(msg.sender == crowdFunding[_id].recipient);
 
@@ -83,10 +86,11 @@ contract CrowdFundingunding is Ownable{
             id: currentVoteId.current(),
             title: _title,
             description: _description,
-            isActive: true,
+            requestedFunds: _requestedFunds,
             startTime: block.timestamp,
             votedPositive: 0,
-            votedNegative: 0
+            votedNegative: 0,
+            isActive: true
         });
 
         currentVoteId.increment();
@@ -96,12 +100,11 @@ contract CrowdFundingunding is Ownable{
 
     function fund (uint _id) public payable {
 
-        Funding storage funding = crowdFunding[_id]; /// @dev Not sure if it works as a pointer
+        Funding storage funding = crowdFunding[_id];
         require(msg.sender != funding.recipient, "You can't fund yoursel :)");
         require(funding.currentFunds < funding.goal, "This Campaign already achieved their goal"); /// @dev might need to change this require statement as it looks useless
+        require(funding.currentFunds + msg.value < funding.goal, "Your donation will exceed proclaimed goal");
         require(funding.isActive, "The funding target is not active.");
-        funding.recipient.transfer(msg.value);
-        funding.currentFunds += msg.value;
         funding.contributersCount.add(1);
         contributions[_id][msg.sender] += msg.value;
 
@@ -127,15 +130,31 @@ contract CrowdFundingunding is Ownable{
         return voting.votedPositive > voting.votedNegative;
     }
 
+    function viewOwnContributions(uint _fundId) public view returns (uint) {
+        return contributions[_fundId][msg.sender];
+    }
+
+    function viewOwnVotes(uint _voteId) public view returns (bool) {
+        return hasVoted[_voteId][msg.sender];
+    }
+
+    function endFunding(uint _id) public {
+        Funding storage funding = crowdFunding[_id];
+        require(msg.sender == funding.recipient, "You are not the owner of this funding campaign");
+        require(funding.isActive, "This funding campaign is already finished");
+        funding.isActive = false;
+    }
+
+    function endVote(uint _fundingId, uint _voteId) public {
+        Voting storage voting = fundingVotes[_fundingId][_voteId];
+        require(crowdFunding[_fundingId].recipient == msg.sender, "You are not the owner of this funding campaign");
+        require(voting.isActive, "Voting isn't active");
+        require(voting.startTime + votingDuration >= block.timestamp, "Not enough time has passed");
+        require(address(this).balance > voting.requestedFunds);
+        voting.isActive = false;
+        payable(crowdFunding[_fundingId].recipient).transfer(voting.requestedFunds);
+    }
+
 }
 
-    // function vote (uint _fundingId, uint _voteId) public {
-    //     Voting[] memory tempList = fundingVotes[_fundingId];
-    //     tempList[_voteId].votedPositive.add(1);
-    // }
-
-    // function refund() public onlyOwner onlyAdmin {
-        
-    // }
-
-    // TODO: create a method that will track contributers votes, "onhold" mechanism, cover everything with tests
+// TODO: cover everything with tests
