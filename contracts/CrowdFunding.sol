@@ -11,7 +11,7 @@ contract CrowdFundingunding is Ownable{
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
-    // TODO: Using counters as Id's is a bad pracrtice. UUID is recommended
+    // TODO: Using counters as Id's is a bad pracrtice. UUID is recommended. Also will add constructor for constants and a method to change them.
 
     Counters.Counter private currentFundId;
     Counters.Counter private currentVoteId;
