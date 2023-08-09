@@ -5,7 +5,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  const crowdFunding = await deploy("CrowdFunding", {
+  const crowdFunding = await deploy("CrowdFundingunding", {
     from: deployer,
     log: true,
   });
