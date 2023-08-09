@@ -80,7 +80,7 @@ contract CrowdFundingunding is Ownable{
 
     function createVoting(string memory _title, string memory _description, uint _id, uint _requestedFunds) public payable{
 
-        require(msg.sender == crowdFunding[_id].recipient);
+        require(msg.sender == crowdFunding[_id].recipient, "You are not this CrowdFunding creator.");
 
         Voting memory newVoting = Voting({
             id: currentVoteId.current(),

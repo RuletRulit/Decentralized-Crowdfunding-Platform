@@ -105,7 +105,7 @@ const config: HardhatUserConfig = {
     sepolia: getChainConfig("sepolia"),
   },
   paths: {
-    artifacts: "./artifacts",
+    artifacts: "./artifacts/CrowdFunding.sol",
     cache: "./cache",
     sources: "./contracts",
     tests: "./test",
