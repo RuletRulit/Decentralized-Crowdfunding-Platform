@@ -46,7 +46,6 @@ describe("Unit tests", function () {
             expect(voting.title).to.equal("Test_title");
             expect(voting.description).to.equal("Test_description");
             expect(voting.requestedFunds).to.equal(20000);
-            // expect(voting.startTime).to.equal();
             expect(voting.votedPositive).to.equal(0);
             expect(voting.votedNegative).to.equal(0);
             expect(voting.isActive).to.equal(true);
@@ -58,7 +57,6 @@ describe("Unit tests", function () {
             const _id = 0;
             const _requestedFunds = 100;
         
-            // Assuming the sender is not the recipient (this should cause the require to fail)
             await expect(
               this.crowdFunding.createVoting(
                 _title,
@@ -70,16 +68,13 @@ describe("Unit tests", function () {
           });
           it("should allow funding if all requirements are met", async function () {
             const _id = 0;
-            const initialFunds = 0; // Assuming the initial funds for the campaign are 0
+            const initialFunds = 0;
             const goal = 1000;
         
-            // Deploy the contract instance and set up a funding campaign
             await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
         
-            // Fund the campaign
             await this.crowdFunding.connect(this.user1.address).fund(_id, { value: 500 });
         
-            // Check updated contract state
             const updatedFunding = await this.crowdFunding.crowdFunding(_id);
             console.log(updatedFunding.currentFunds, this.user1);
             expect(updatedFunding.currentFunds).to.equal(initialFunds + 500);
@@ -103,10 +98,8 @@ describe("Unit tests", function () {
             const _id = 0;
             const goal = 1000;
         
-            // Deploy the contract instance and set up a funding campaign
             await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
         
-            // Attempt to fund beyond the proclaimed goal (this should revert)
             await expect(
                 this.crowdFunding.connect(this.user1.address).fund(_id, { value: goal + 1 })
             ).to.be.revertedWith("Your donation will exceed proclaimed goal");
