@@ -65,24 +65,22 @@ describe("Unit tests", function () {
                 _requestedFunds
               )
             ).to.be.revertedWith("You are not this CrowdFunding creator.");
-          });
-          it("should allow funding if all requirements are met", async function () {
+        });
+        it("should allow funding if all requirements are met", async function () {
             const _id = 0;
-            const initialFunds = 0;
-            const goal = 1000;
+            const goal = 1000000;
         
             await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
         
-            await this.crowdFunding.connect(this.user1.address).fund(_id, { value: 500 });
+            await this.crowdFunding.connect(this.user1).fund(_id, { value: 500 });
         
-            const updatedFunding = await this.crowdFunding.crowdFunding(_id);
-            console.log(updatedFunding.currentFunds, this.user1);
-            expect(updatedFunding.currentFunds).to.equal(initialFunds + 500);
-            console.log(updatedFunding.contributersCount);
-            expect(updatedFunding.contributersCount).to.equal(1);
+            const funding = await this.crowdFunding.crowdFunding(_id);
+            console.log(funding.currentFunds, funding.contributersCount, "pizda");
+            expect(funding.currentFunds).to.equal(500);
+            expect(funding.contributersCount).to.equal(1);
             expect(await this.crowdFunding.contributions(_id, this.user1.address)).to.equal(500);
-          });
-          it("should revert when trying to fund yourself", async function () {
+        });
+        it("should revert when trying to fund yourself", async function () {
         
             const _id = 0;
             const goal = 1000;
@@ -90,10 +88,10 @@ describe("Unit tests", function () {
             await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
         
             await expect(
-                this.crowdFunding.fund(_id, { value: goal + 1 })
+                this.crowdFunding.fund(_id, { value: 500 })
             ).to.be.revertedWith("You can't fund yoursel :)");
-          });
-          it("should revert when trying to fund beyond the proclaimed goal", async function () {
+        });
+        it("should revert when trying to fund beyond the proclaimed goal", async function () {
         
             const _id = 0;
             const goal = 1000;
@@ -101,8 +99,41 @@ describe("Unit tests", function () {
             await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
         
             await expect(
-                this.crowdFunding.connect(this.user1.address).fund(_id, { value: goal + 1 })
+                this.crowdFunding.connect(this.user1).fund(_id, { value: goal + 1 })
             ).to.be.revertedWith("Your donation will exceed proclaimed goal");
-          });
+        });
+        it("should revert when funding campaign that achieved its goal", async function () {
+            const _id = 0;
+            const goal = 1000;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
+
+            await this.crowdFunding.connect(this.user1).fund(_id, { value: goal - 1});
+            // expect((await this.crowdFunding.crowdFunding(_id)).currentFunds.to.equal(goal));
+            await expect(
+                this.crowdFunding.connect(this.user2).fund(_id, { value: 1 })
+            ).to.be.revertedWith("Your donation will exceed proclaimed goal");
+        });
+        it("should revert if users donation exceeds current goal", async function () {
+            const _id = 0;
+            const goal = 1000;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
+
+            await this.crowdFunding.connect(this.user1).fund(_id, { value: goal - 1});
+            await expect(
+                this.crowdFunding.connect(this.user2).fund(_id, { value: goal })
+            ).to.be.revertedWith("Your donation will exceed proclaimed goal");
+        });
+        it("should revert when funding is not active", async function () {
+            const _id = 0;
+            const goal = 1000;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
+            await this.crowdFunding.endFunding(0);
+            await expect(
+                this.crowdFunding.connect(this.user1).fund(_id, { value: goal})
+            ).to.be.revertedWith("The funding target is not active.");
         });
     });
+});
