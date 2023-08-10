@@ -14,6 +14,7 @@ describe("Unit tests", function () {
     this.admin = signers[0];
     this.user1 = signers[1];
     this.user2 = signers[2];
+    this.user3 = signers[3];
 
     this.loadFixture = loadFixture;
   });
@@ -23,7 +24,7 @@ describe("Unit tests", function () {
             const { crowdFunding } = await this.loadFixture(deployCrowdFundingFixture);
             this.crowdFunding = crowdFunding;
         });
-        it("Should create a Funding object", async function () {
+        it("should create a Funding object", async function () {
             await this.crowdFunding.createFuncding("Test_name", "Test_description", 10000);
 
             const funding = await this.crowdFunding.crowdFunding(0);
@@ -36,7 +37,7 @@ describe("Unit tests", function () {
             expect(funding.recipient).to.equal(this.admin.address);
             expect(funding.contributersCount).to.equal(0);
         });
-        it("Should create Vote object", async function () {
+        it("should create Vote object", async function () {
             await this.crowdFunding.createFuncding("Test_name", "Test_description", 10000);
             await this.crowdFunding.createVoting("Test_title", "Test_description", 0, 20000);
 
@@ -50,32 +51,19 @@ describe("Unit tests", function () {
             expect(voting.votedNegative).to.equal(0);
             expect(voting.isActive).to.equal(true);
         });
-        it("should revert when sender is not the recipient", async function () {
-        
-            const _title = "Sample Title";
-            const _description = "Sample Description";
-            const _id = 0;
-            const _requestedFunds = 100;
-        
+        it("should revert you are no the owner", async function () {
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 10000);
             await expect(
-              this.crowdFunding.createVoting(
-                _title,
-                _description,
-                _id,
-                _requestedFunds
-              )
-            ).to.be.revertedWith("You are not this CrowdFunding creator.");
+                this.crowdFunding.connect(this.user1).createVoting("Test_title", "Test_description", 0, 20000)
+                    ).to.be.revertedWith("You are not this CrowdFunding creator.");
         });
         it("should allow funding if all requirements are met", async function () {
             const _id = 0;
             const goal = 1000000;
         
             await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
-        
             await this.crowdFunding.connect(this.user1).fund(_id, { value: 500 });
-        
             const funding = await this.crowdFunding.crowdFunding(_id);
-            console.log(funding.currentFunds, funding.contributersCount, "pizda");
             expect(funding.currentFunds).to.equal(500);
             expect(funding.contributersCount).to.equal(1);
             expect(await this.crowdFunding.contributions(_id, this.user1.address)).to.equal(500);
@@ -109,7 +97,6 @@ describe("Unit tests", function () {
             await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
 
             await this.crowdFunding.connect(this.user1).fund(_id, { value: goal - 1});
-            // expect((await this.crowdFunding.crowdFunding(_id)).currentFunds.to.equal(goal));
             await expect(
                 this.crowdFunding.connect(this.user2).fund(_id, { value: 1 })
             ).to.be.revertedWith("Your donation will exceed proclaimed goal");
@@ -119,7 +106,6 @@ describe("Unit tests", function () {
             const goal = 1000;
 
             await this.crowdFunding.createFuncding("Test_name", "Test_description", goal);
-
             await this.crowdFunding.connect(this.user1).fund(_id, { value: goal - 1});
             await expect(
                 this.crowdFunding.connect(this.user2).fund(_id, { value: goal })
@@ -134,6 +120,99 @@ describe("Unit tests", function () {
             await expect(
                 this.crowdFunding.connect(this.user1).fund(_id, { value: goal})
             ).to.be.revertedWith("The funding target is not active.");
+        });
+        it("should vote if all requirenments are met", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 10000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 20000);
+
+            await this.crowdFunding.connect(this.user1).vote(_fundId, _voteId, true);
+            expect(
+                await this.crowdFunding.connect(this.user1).viewOwnVotes(_voteId)
+                ).to.equal(true);
+        });
+        it("should revert voting is not active", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 2000);
+            await this.crowdFunding.connect(this.user1).fund(_fundId, { value: 3000});
+            await this.crowdFunding.connect(this.user1).vote(_fundId, _voteId, true);
+            await this.crowdFunding.endVote(_fundId, _voteId);
+            expect(
+                (await this.crowdFunding.fundingVotes(_fundId, _voteId)).isActive
+            ).to.equal(false);
+        });
+        it("should revert already voted", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 10000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 20000);
+            await this.crowdFunding.connect(this.user1).vote(_fundId, _voteId, true);
+            await expect(
+                this.crowdFunding.connect(this.user1).vote(_fundId, _voteId, true)
+            ).to.be.revertedWith("You have already voted.");
+        });
+        it("shoul return correct summ of donations", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+            const _value = 3000;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.connect(this.user1).fund(_fundId, { value: _value});
+
+            expect(
+                await this.crowdFunding.connect(this.user1).viewOwnContributions(_fundId)
+            ).to.equal(_value);
+        });
+        it("should return correct voting info", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+            const _choice = true;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 2000);
+            await this.crowdFunding.connect(this.user1).fund(_fundId, { value: 3000});
+            await this.crowdFunding.connect(this.user1).vote(_fundId, _voteId, _choice);
+            expect(
+                await this.crowdFunding.connect(this.user1).viewOwnVotes(_voteId)
+            ).to.equal(_choice);
+        });
+        it("calculates winner correctly", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 2000);
+            await this.crowdFunding.connect(this.user1).fund(_fundId, { value: 3000});
+            await this.crowdFunding.connect(this.user2).fund(_fundId, { value: 3000});
+            await this.crowdFunding.connect(this.user3).fund(_fundId, { value: 3000});
+            await this.crowdFunding.connect(this.user1).vote(_fundId, _voteId, true);
+            await this.crowdFunding.connect(this.user2).vote(_fundId, _voteId, true);
+            await this.crowdFunding.connect(this.user3).vote(_fundId, _voteId, false);
+            expect(
+                await this.crowdFunding.isVotingSuccessful(_fundId, _voteId)
+            ).to.equal(true);
+        });
+        it("calculates winner correctly", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 2000);
+            await this.crowdFunding.connect(this.user1).fund(_fundId, { value: 3000});
+            await this.crowdFunding.connect(this.user2).fund(_fundId, { value: 3000});
+            await this.crowdFunding.connect(this.user3).fund(_fundId, { value: 3000});
+            await this.crowdFunding.connect(this.user1).vote(_fundId, _voteId, true);
+            await this.crowdFunding.connect(this.user2).vote(_fundId, _voteId, false);
+            await this.crowdFunding.connect(this.user3).vote(_fundId, _voteId, false);
+            expect(
+                await this.crowdFunding.isVotingSuccessful(_fundId, _voteId)
+            ).to.equal(false);
         });
     });
 });

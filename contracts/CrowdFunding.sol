@@ -103,7 +103,7 @@ contract CrowdFundingunding is Ownable{
         Funding storage funding = crowdFunding[_id];
         require(funding.isActive, "The funding target is not active.");
         require(msg.sender != funding.recipient, "You can't fund yoursel :)");
-        require(funding.currentFunds > funding.goal, "This Campaign already achieved their goal"); /// @dev might need to change this require statement as it looks useless
+        require(funding.currentFunds < funding.goal, "This Campaign already achieved their goal"); /// @dev might need to change this require statement as it looks useless
         require(funding.currentFunds + msg.value < funding.goal, "Your donation will exceed proclaimed goal");
         funding.currentFunds += msg.value;
         funding.contributersCount += 1;
@@ -150,8 +150,8 @@ contract CrowdFundingunding is Ownable{
         Voting storage voting = fundingVotes[_fundingId][_voteId];
         require(crowdFunding[_fundingId].recipient == msg.sender, "You are not the owner of this funding campaign");
         require(voting.isActive, "Voting isn't active");
-        require(voting.startTime + votingDuration >= block.timestamp, "Not enough time has passed");
-        require(address(this).balance > voting.requestedFunds);
+        // require(voting.startTime + votingDuration >= block.timestamp, "Not enough time has passed");
+        require(address(this).balance >= voting.requestedFunds, "Not enough funds");
         voting.isActive = false;
         payable(crowdFunding[_fundingId].recipient).transfer(voting.requestedFunds);
     }
