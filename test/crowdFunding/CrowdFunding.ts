@@ -146,6 +146,18 @@ describe("Unit tests", function () {
                 (await this.crowdFunding.fundingVotes(_fundId, _voteId)).isActive
             ).to.equal(false);
         });
+        it("should revert voting instance is not active", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 2000);
+            await this.crowdFunding.connect(this.user1).fund(_fundId, { value: 3000});
+            await this.crowdFunding.endVote(_fundId, _voteId);
+            await expect(
+                this.crowdFunding.connect(this.user1).vote(_fundId, _voteId, true)
+                ).to.be.revertedWith("Voting instance is not active.");
+        });
         it("should revert already voted", async function () {
             const _fundId = 0;
             const _voteId = 0;
@@ -159,7 +171,6 @@ describe("Unit tests", function () {
         });
         it("shoul return correct summ of donations", async function () {
             const _fundId = 0;
-            const _voteId = 0;
             const _value = 3000;
 
             await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
@@ -213,6 +224,56 @@ describe("Unit tests", function () {
             expect(
                 await this.crowdFunding.isVotingSuccessful(_fundId, _voteId)
             ).to.equal(false);
+        });
+        it("should finish funding", async function () {
+            const _fundId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.endFunding(_fundId);
+            expect(
+                (await this.crowdFunding.crowdFunding(_fundId)).isActive
+            ).to.equal(false);
+        });
+        it("should revert with you are not the owner of this funding campaign", async function () {
+            const _fundId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            
+            await expect(
+                this.crowdFunding.connect(this.user1).endFunding(_fundId)
+            ).to.be.revertedWith("You are not the owner of this funding campaign");
+        });
+        it("should revert with funding campaign is already finished", async function () {
+            const _fundId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.endFunding(_fundId);
+
+            await expect(
+                 this.crowdFunding.endFunding(_fundId)
+            ).to.be.revertedWith("This funding campaign is already finished");
+        });
+        it("should revert with You are not the owner of this funding campaign", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 2000);
+            await expect(
+                this.crowdFunding.connect(this.user1).endVote(_fundId, _voteId)
+            ).to.be.revertedWith("You are not the owner of this funding campaign");
+        });
+        it("should revert with Voting isn't active", async function () {
+            const _fundId = 0;
+            const _voteId = 0;
+
+            await this.crowdFunding.createFuncding("Test_name", "Test_description", 100000);
+            await this.crowdFunding.createVoting("Test_title", "Test_description", _voteId, 2000);
+            await this.crowdFunding.connect(this.user1).fund(_fundId, { value: 99999 })
+            await this.crowdFunding.endVote(_fundId, _voteId);
+            await expect(
+                this.crowdFunding.endVote(_fundId, _voteId)
+            ).to.be.revertedWith("Voting isn't active");
         });
     });
 });

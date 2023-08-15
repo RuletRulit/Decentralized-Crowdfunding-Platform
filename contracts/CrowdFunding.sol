@@ -103,7 +103,6 @@ contract CrowdFundingunding is Ownable{
         Funding storage funding = crowdFunding[_id];
         require(funding.isActive, "The funding target is not active.");
         require(msg.sender != funding.recipient, "You can't fund yoursel :)");
-        require(funding.currentFunds < funding.goal, "This Campaign already achieved their goal"); /// @dev might need to change this require statement as it looks useless
         require(funding.currentFunds + msg.value < funding.goal, "Your donation will exceed proclaimed goal");
         funding.currentFunds += msg.value;
         funding.contributersCount += 1;
@@ -158,4 +157,4 @@ contract CrowdFundingunding is Ownable{
 
 }
 
-// TODO: cover everything with tests
+// TODO: cover everything with tests, add several checks at core functions
