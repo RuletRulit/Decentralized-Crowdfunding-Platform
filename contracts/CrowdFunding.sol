@@ -4,14 +4,15 @@ pragma solidity >=0.8.10;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@openzeppelin/contracts/utils/Counters.sol";
+/// @dev currently there is no big/serious math operations. Left for the sake of good tone
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";  /// @dev currently there is no big/serious math operations. Left for the sake of good tone
-
-contract CrowdFundingunding is Ownable{
+contract CrowdFundingunding is Ownable {
     using Counters for Counters.Counter;
     using SafeMath for uint256;
 
-    // TODO: Using counters as Id's is a bad pracrtice. UUID is recommended. Also will add constructor for constants and a method to change them.
+    // TODO: Using counters as Id's is a bad pracrtice. UUID is recommended.
+    // Also will add constructor for constants and a method to change them.
 
     Counters.Counter private currentFundId;
     Counters.Counter private currentVoteId;
@@ -41,7 +42,7 @@ contract CrowdFundingunding is Ownable{
     } /// @dev need to be reorganised due to memory efficient use
 
     struct Voting {
-        uint id;
+        uint id; /// @dev Should be reconsidered
         string title;
         string description;
         uint requestedFunds;
@@ -60,14 +61,13 @@ contract CrowdFundingunding is Ownable{
     mapping(uint => mapping(address => bool)) public hasVoted;
 
     function createFuncding(string memory _name, string memory _description, uint _goal) public {
-
         Funding memory newFunding = Funding({
             name: _name,
             description: _description,
             goal: _goal,
             currentFunds: 0,
             isActive: true,
-            recipient:payable(msg.sender),
+            recipient: payable(msg.sender),
             contributersCount: 0
         });
 
@@ -78,14 +78,13 @@ contract CrowdFundingunding is Ownable{
         currentFundId.increment();
     }
 
-    function createVoting(string memory _title, string memory _description, uint _id, uint _requestedFunds) public payable{
-
+    function createVoting(string memory _title, string memory _desc, uint _id, uint _requestedFunds) public payable {
         require(msg.sender == crowdFunding[_id].recipient, "You are not this CrowdFunding creator.");
 
         Voting memory newVoting = Voting({
             id: currentVoteId.current(),
             title: _title,
-            description: _description,
+            description: _desc,
             requestedFunds: _requestedFunds,
             startTime: block.timestamp,
             votedPositive: 0,
@@ -98,8 +97,7 @@ contract CrowdFundingunding is Ownable{
         fundingVotes[_id].push(newVoting);
     }
 
-    function fund (uint _id) public payable {
-
+    function fund(uint _id) public payable {
         Funding storage funding = crowdFunding[_id];
         require(funding.isActive, "The funding target is not active.");
         require(msg.sender != funding.recipient, "You can't fund yoursel :)");
@@ -107,7 +105,6 @@ contract CrowdFundingunding is Ownable{
         funding.currentFunds += msg.value;
         funding.contributersCount += 1;
         contributions[_id][msg.sender] += msg.value;
-
     }
 
     function vote(uint _fundingId, uint _voteId, bool _vote) public {
@@ -154,7 +151,6 @@ contract CrowdFundingunding is Ownable{
         voting.isActive = false;
         payable(crowdFunding[_fundingId].recipient).transfer(voting.requestedFunds);
     }
-
 }
 
-// TODO: cover everything with tests, add several checks at core functions
+// TODO: add several checks at core functions
