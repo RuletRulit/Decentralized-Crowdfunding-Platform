@@ -41,7 +41,7 @@ contract CrowdFundingunding is Ownable{
     } /// @dev need to be reorganised due to memory efficient use
 
     struct Voting {
-        uint id;
+        uint id; /// @dev This is also questionable parametr to use here and in the context of this contract. Should be reconsidered
         string title;
         string description;
         uint requestedFunds;
@@ -157,4 +157,4 @@ contract CrowdFundingunding is Ownable{
 
 }
 
-// TODO: cover everything with tests, add several checks at core functions
+// TODO: add several checks at core functions
